@@ -1,0 +1,23 @@
+# defaults for the streaming + dashboard pipeline
+# env vars TRACK_KEYWORDS, LANGUAGE override these at runtime
+
+track_keywords:
+  - python
+  - flask
+  - heroku
+
+language: en
+
+# how many recent tweets to keep in memory
+buffer_size: 200
+
+# moving average windows used by /api/sentiment-summary (seconds)
+moving_avg_windows_seconds:
+  - 60
+  - 300
+  - 900
+
+# scoring
+scoring:
+  vader_weight: 0.6
+  textblob_weight: 0.4
