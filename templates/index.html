@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Twitter sentiment</title>
+  <style>
+    body { font-family: -apple-system, Helvetica, Arial, sans-serif; margin: 2em; color: #222; }
+    h1 { font-weight: 400; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; }
+    .positive { background: #d3f0d3; color: #226622; }
+    .negative { background: #f6d2d2; color: #882222; }
+    .neutral  { background: #eee;    color: #555; }
+    .tweet { padding: 6px 0; border-bottom: 1px solid #eee; }
+    .meta  { color: #888; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <h1>Live Twitter sentiment</h1>
+  <p class="meta">Tracking keywords from <code>configs/default.yaml</code> (or <code>TRACK_KEYWORDS</code> env). Auto-refresh every 5s.</p>
+
+  <h2>Latest tweets</h2>
+  <div id="tweets">loading...</div>
+</body>
+</html>
