@@ -11,7 +11,7 @@ import time
 import tweepy
 import yaml
 
-from src.score import score_vader, label
+from src.score import score, label
 from src.store import store
 
 log = logging.getLogger("stream")
@@ -37,14 +37,16 @@ class Listener(tweepy.StreamListener):
         if hasattr(status, "retweeted_status"):
             return
         text = status.text
-        s = score_vader(text)
+        combined, v, t = score(text)
         store.add({
             "id": status.id_str,
             "text": text,
             "user": status.user.screen_name,
             "created_at": status.created_at.isoformat(),
-            "score": s,
-            "label": label(s),
+            "score": combined,
+            "vader": v,
+            "textblob": t,
+            "label": label(combined),
         })
 
     def on_error(self, status_code):
