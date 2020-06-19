@@ -60,14 +60,19 @@
   }
 
   function tick() {
-    fetch("/api/tweets?n=30").then(function (r) { return r.json(); }).then(function (d) {
-      renderTweets(d.tweets || []);
-    });
-    fetch("/api/sentiment-summary").then(function (r) { return r.json(); }).then(function (d) {
-      renderSummary(d);
-    });
+    fetch("/api/tweets?n=30")
+      .then(function (r) { return r.json(); })
+      .then(function (d) { renderTweets(d.tweets || []); })
+      .catch(function (e) { console.warn("tweets fetch failed", e); });
+    fetch("/api/sentiment-summary")
+      .then(function (r) { return r.json(); })
+      .then(function (d) { renderSummary(d); })
+      .catch(function (e) { console.warn("summary fetch failed", e); });
   }
 
+  // refresh interval can be overridden via ?refresh=10 in seconds
+  var params = new URLSearchParams(window.location.search);
+  var refreshSec = parseInt(params.get("refresh") || "5", 10);
   tick();
-  setInterval(tick, 5000);
+  setInterval(tick, Math.max(1, refreshSec) * 1000);
 })();
