@@ -1,14 +1,27 @@
 """Flask app for the sentiment dashboard."""
 import os
 
+import yaml
 from dotenv import load_dotenv
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 
 from src.store import store
 
 load_dotenv()
 
 app = Flask(__name__)
+
+
+def _load_windows():
+    try:
+        with open("configs/default.yaml") as f:
+            cfg = yaml.safe_load(f)
+        return cfg.get("moving_avg_windows_seconds", [60, 300, 900])
+    except Exception:
+        return [60, 300, 900]
+
+
+WINDOWS = _load_windows()
 
 
 @app.route("/")
@@ -18,19 +31,39 @@ def index():
 
 @app.route("/api/tweets")
 def api_tweets():
-    n = int(request_arg("n", 50))
+    n = int(request.args.get("n", 50))
     items = store.recent(n=n)
     return jsonify({"count": len(items), "tweets": items})
+
+
+@app.route("/api/sentiment-summary")
+def api_summary():
+    out = {"windows": []}
+    for w in WINDOWS:
+        items = store.since(w)
+        if items:
+            avg = sum(t["score"] for t in items) / len(items)
+            pos = sum(1 for t in items if t["label"] == "positive")
+            neg = sum(1 for t in items if t["label"] == "negative")
+            neu = sum(1 for t in items if t["label"] == "neutral")
+        else:
+            avg = 0.0
+            pos = neg = neu = 0
+        out["windows"].append({
+            "window_seconds": w,
+            "count": len(items),
+            "avg_score": avg,
+            "positive": pos,
+            "negative": neg,
+            "neutral": neu,
+        })
+    out["total_in_buffer"] = len(store)
+    return jsonify(out)
 
 
 @app.route("/healthz")
 def healthz():
     return "ok"
-
-
-def request_arg(name, default):
-    from flask import request
-    return request.args.get(name, default)
 
 
 if __name__ == "__main__":
