@@ -58,6 +58,15 @@ class Listener(tweepy.StreamListener):
 
 
 def build_auth():
+    required = [
+        "TWITTER_CONSUMER_KEY",
+        "TWITTER_CONSUMER_SECRET",
+        "TWITTER_ACCESS_TOKEN",
+        "TWITTER_ACCESS_SECRET",
+    ]
+    missing = [k for k in required if not os.environ.get(k)]
+    if missing:
+        raise RuntimeError("missing env vars: " + ", ".join(missing))
     auth = tweepy.OAuthHandler(
         os.environ["TWITTER_CONSUMER_KEY"],
         os.environ["TWITTER_CONSUMER_SECRET"],
