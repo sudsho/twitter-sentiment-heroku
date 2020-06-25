@@ -7,7 +7,12 @@ from flask import Flask, jsonify, render_template, request
 
 from src.store import store
 
-load_dotenv()
+# load .env if present; on heroku the dyno sets env vars directly so missing
+# .env is fine. dotenv silently does nothing if the file isn't there but we
+# want to be explicit so a typo'd path is noisy.
+DOTENV_PATH = os.environ.get("DOTENV_PATH", ".env")
+if os.path.exists(DOTENV_PATH):
+    load_dotenv(DOTENV_PATH)
 
 app = Flask(__name__)
 

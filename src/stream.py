@@ -10,9 +10,15 @@ import time
 
 import tweepy
 import yaml
+from dotenv import load_dotenv
 
 from src.score import score, label
 from src.store import store
+
+# same logic as app.py; needed so the worker dyno picks up local .env in dev
+_dotenv = os.environ.get("DOTENV_PATH", ".env")
+if os.path.exists(_dotenv):
+    load_dotenv(_dotenv)
 
 log = logging.getLogger("stream")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
