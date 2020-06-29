@@ -4,11 +4,20 @@ Real-time Twitter sentiment dashboard. Streams tweets matching a keyword via
 tweepy, scores them with VADER + TextBlob, and shows the rolling sentiment in a
 small Flask web UI. Deployable to Heroku.
 
+[![Build Status](https://travis-ci.org/sudsho/twitter-sentiment-heroku.svg?branch=main)](https://travis-ci.org/sudsho/twitter-sentiment-heroku)
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/sudsho/twitter-sentiment-heroku)
+
 ## Why
 
 Quarantine boredom side project. Wanted to see how the public mood around a
 keyword (`covid`, a brand name, a politician, a TV show) shifts in real time.
 Easiest way to learn the Twitter streaming API at the same time.
+
+## Screenshot
+
+![dashboard](docs/screenshot.png)
+
+(placeholder — drop a real screenshot in `docs/` after you boot it)
 
 ## What it does
 
@@ -17,13 +26,13 @@ Easiest way to learn the Twitter streaming API at the same time.
 - Each incoming tweet gets scored by two sentiment models:
   - VADER (`vaderSentiment`) — rule-based, tuned for social media slang.
   - TextBlob — naive Bayes-ish polarity.
-  - The app reports both individually and a simple average.
+  - Reported individually + as a weighted average.
 - The last N tweets sit in an in-memory ring buffer (default N=200).
 - A tiny Flask app reads the buffer and serves:
   - `/` — HTML dashboard with the latest tweets and a moving-average chart.
   - `/api/tweets` — JSON dump of recent tweets + scores.
   - `/api/sentiment-summary` — 1, 5, 15-minute moving averages.
-- The dashboard auto-refreshes every 5 seconds via a small JS poller.
+- The dashboard auto-refreshes every 5s (override with `?refresh=N`).
 
 ## Stack
 
@@ -33,7 +42,7 @@ Easiest way to learn the Twitter streaming API at the same time.
 - vaderSentiment 3.3.2
 - TextBlob 0.15
 - gunicorn for the web dyno
-- Heroku (Procfile + runtime.txt)
+- Heroku (Procfile + runtime.txt + app.json)
 
 ## Setup
 
@@ -50,6 +59,7 @@ cd twitter-sentiment-heroku
 python -m venv .venv
 source .venv/bin/activate    # or .venv\Scripts\activate on Windows
 pip install -r requirements.txt
+python -m textblob.download_corpora    # one time, for textblob
 cp .env.example .env
 # edit .env with your Twitter API keys
 ```
@@ -60,12 +70,16 @@ Run web + worker locally in two terminals:
 # terminal 1
 python -m src.stream
 # terminal 2
-gunicorn app:app
+gunicorn wsgi:app
 ```
 
 Then open http://localhost:8000.
 
 ## Deploy to Heroku
+
+Quick path: hit the Deploy button at the top of this README.
+
+Manual:
 
 ```bash
 heroku create my-twitter-sentiment
@@ -76,6 +90,7 @@ heroku config:set TWITTER_ACCESS_SECRET=...
 heroku config:set TRACK_KEYWORDS="python,flask,covid"
 git push heroku main
 heroku ps:scale web=1 worker=1
+heroku logs --tail
 ```
 
 Heroku free dyno is enough for low-volume keywords. High-volume tags
@@ -110,7 +125,8 @@ not unit-tested (it talks to the live Twitter API).
 
 ```
 .
-├── app.py                # Flask entrypoint
+├── app.py                # Flask routes
+├── wsgi.py               # gunicorn entrypoint
 ├── src/
 │   ├── stream.py         # tweepy stream listener
 │   ├── score.py          # VADER + TextBlob ensemble
@@ -118,17 +134,30 @@ not unit-tested (it talks to the live Twitter API).
 ├── templates/
 │   └── index.html        # dashboard
 ├── static/
-│   └── chart.js          # moving-average chart
+│   └── chart.js          # summary bars + tweet list
 ├── configs/
 │   └── default.yaml
 ├── tests/
 │   ├── test_score.py
 │   └── test_store.py
 ├── Procfile
+├── app.json
 ├── runtime.txt
 ├── requirements.txt
 └── .env.example
 ```
+
+## Known issues / things I didn't do
+
+- In-memory store means the buffer resets on every dyno restart. Heroku
+  recycles dynos every 24h. Fine for a demo. A real version would use Redis
+  or Postgres.
+- The web and worker dynos don't share memory, so the dashboard only sees
+  tweets the *web* dyno scored. On Heroku you'd hit this. For the demo, run
+  the stream from inside the same process by importing `src.stream` and
+  spawning a thread on app boot. Left as an exercise (or use Redis pub/sub).
+- No rate-limit handling beyond the basic 420 backoff.
+- No persistent history. The 15-minute window is the longest available.
 
 ## License
 
