@@ -1,0 +1,21 @@
+{
+  "name": "twitter-sentiment-heroku",
+  "description": "Real-time Twitter sentiment dashboard with VADER + TextBlob.",
+  "repository": "https://github.com/sudsho/twitter-sentiment-heroku",
+  "keywords": ["python", "flask", "tweepy", "sentiment", "nlp"],
+  "env": {
+    "TWITTER_CONSUMER_KEY":   { "description": "Twitter API consumer key",    "required": true },
+    "TWITTER_CONSUMER_SECRET":{ "description": "Twitter API consumer secret", "required": true },
+    "TWITTER_ACCESS_TOKEN":   { "description": "Twitter API access token",    "required": true },
+    "TWITTER_ACCESS_SECRET":  { "description": "Twitter API access secret",   "required": true },
+    "TRACK_KEYWORDS":         { "description": "comma separated keywords", "value": "python,flask" },
+    "LANGUAGE":               { "description": "tweet language", "value": "en" }
+  },
+  "formation": {
+    "web":    { "quantity": 1, "size": "free" },
+    "worker": { "quantity": 1, "size": "free" }
+  },
+  "buildpacks": [
+    { "url": "heroku/python" }
+  ]
+}
