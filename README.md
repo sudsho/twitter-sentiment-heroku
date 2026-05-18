@@ -24,14 +24,14 @@ See `docs/dashboard.png` for the live dashboard screenshot.
 - A background worker opens a tweepy filter stream against a list of
   keywords (configurable in `configs/default.yaml`).
 - Each incoming tweet gets scored by two sentiment models:
-  - VADER (`vaderSentiment`) — rule-based, tuned for social media slang.
-  - TextBlob — naive Bayes-ish polarity.
+  - VADER (`vaderSentiment`) - rule-based, tuned for social media slang.
+  - TextBlob - naive Bayes-ish polarity.
   - Reported individually + as a weighted average.
 - The last N tweets sit in an in-memory ring buffer (default N=200).
 - A tiny Flask app reads the buffer and serves:
-  - `/` — HTML dashboard with the latest tweets and a moving-average chart.
-  - `/api/tweets` — JSON dump of recent tweets + scores.
-  - `/api/sentiment-summary` — 1, 5, 15-minute moving averages.
+  - `/` - HTML dashboard with the latest tweets and a moving-average chart.
+  - `/api/tweets` - JSON dump of recent tweets + scores.
+  - `/api/sentiment-summary` - 1, 5, 15-minute moving averages.
 - The dashboard auto-refreshes every 5s (override with `?refresh=N`).
 
 ## Stack
