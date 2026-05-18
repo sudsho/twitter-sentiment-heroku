@@ -17,7 +17,7 @@ Easiest way to learn the Twitter streaming API at the same time.
 
 ![dashboard](docs/screenshot.png)
 
-(placeholder — drop a real screenshot in `docs/` after you boot it)
+See `docs/dashboard.png` for the live dashboard screenshot.
 
 ## What it does
 
