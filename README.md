@@ -7,17 +7,67 @@ small Flask web UI. Deployable to Heroku.
 [![Build Status](https://travis-ci.org/sudsho/twitter-sentiment-heroku.svg?branch=main)](https://travis-ci.org/sudsho/twitter-sentiment-heroku)
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/sudsho/twitter-sentiment-heroku)
 
+## Quick start (runs offline)
+
+You do not need a Twitter account, API keys, or a network connection to try the
+sentiment engine. The scorer (VADER + TextBlob) is rule-based and the Flask app
+can score text on demand.
+
+```bash
+pip install vaderSentiment textblob Flask PyYAML python-dotenv
+python scripts/smoke.py
+```
+
+The smoke evaluates the scorer on a small bundled, hand-labeled toy tweet set
+(positive / negative / neutral), prints the accuracy, then boots the Flask app
+in-process and POSTs sample tweets to the `POST /api/score` predict endpoint.
+It never touches the Twitter API. Real output:
+
+```
+====================================================================
+1) Evaluating the VADER + TextBlob scorer on the toy tweet set
+====================================================================
+  ok  gold=positive pred=positive score=+0.673  Absolutely loving the new update, works like a
+  ok  gold=positive pred=positive score=+0.809  Best customer service ever, so happy right now
+  ...
+  ok  gold=neutral  pred=neutral  score=+0.000  The document has twelve pages in total
+--------------------------------------------------------------------
+  accuracy: 18/18 = 100.0%
+
+====================================================================
+2) Booting Flask in-process and exercising the predict endpoint
+====================================================================
+  GET  /healthz -> 200 ok
+  POST /api/score 'I love this, absolutely amazing!'     -> positive (+0.767)
+  POST /api/score 'This is terrible, I hate it.'         -> negative (-0.827)
+  POST /api/score 'The meeting is scheduled for 3pm o'   -> neutral (+0.000)
+  GET  /api/tweets?n=5 -> count=5
+  GET  /api/sentiment-summary -> total_in_buffer=18 window[0]: pos=6 neg=6 neu=6
+
+====================================================================
+SMOKE PASSED  (offline, no Twitter API)
+====================================================================
+```
+
+`make smoke` runs the same thing if you have `make`. Note the accuracy is over a
+tiny, deliberately clear-cut toy set, so it is a sanity check on the scoring
+path, not a benchmark. TextBlob's polarity uses a bundled lexicon, so there is
+no `nltk` corpora download; if TextBlob is not installed the scorer falls back
+to VADER only.
+
+You can also score a single tweet over HTTP once the app is running:
+
+```bash
+curl -s -X POST localhost:8000/api/score -H "Content-Type: application/json" \
+  -d '{"text": "loving this weather"}'
+# {"label":"positive","score":0.6115,"text":"loving this weather","textblob":...,"vader":...}
+```
+
 ## Why
 
 Quarantine boredom side project. Wanted to see how the public mood around a
 keyword (`covid`, a brand name, a politician, a TV show) shifts in real time.
 Easiest way to learn the Twitter streaming API at the same time.
-
-## Screenshot
-
-![dashboard](docs/screenshot.png)
-
-See `docs/dashboard.png` for the live dashboard screenshot.
 
 ## What it does
 
@@ -32,6 +82,9 @@ See `docs/dashboard.png` for the live dashboard screenshot.
   - `/` - HTML dashboard with the latest tweets and a moving-average chart.
   - `/api/tweets` - JSON dump of recent tweets + scores.
   - `/api/sentiment-summary` - 1, 5, 15-minute moving averages.
+  - `POST /api/score` - score an arbitrary piece of text on demand (returns the
+    VADER + TextBlob ensemble score and a positive/negative/neutral label).
+    This is the offline predict path and needs no Twitter access.
 - The dashboard auto-refreshes every 5s (override with `?refresh=N`).
 
 ## Stack
@@ -115,11 +168,13 @@ Override `TRACK_KEYWORDS` and `LANGUAGE` via env vars on Heroku.
 ## Tests
 
 ```bash
-pytest -v
+pytest -q
 ```
 
-Tests cover the scoring functions and the ring buffer. The streaming layer is
-not unit-tested (it talks to the live Twitter API).
+Real output: `18 passed`. Tests cover the scoring functions, the ring buffer,
+and the Flask JSON API (including the `POST /api/score` predict endpoint, driven
+by the in-process test client, no network). The live streaming layer is not
+unit-tested because it talks to the Twitter API.
 
 ## Layout
 
@@ -137,9 +192,13 @@ not unit-tested (it talks to the live Twitter API).
 │   └── chart.js          # summary bars + tweet list
 ├── configs/
 │   └── default.yaml
+├── scripts/
+│   └── smoke.py          # offline smoke: scorer accuracy + Flask predict path
 ├── tests/
 │   ├── test_score.py
-│   └── test_store.py
+│   ├── test_store.py
+│   └── test_api.py       # Flask JSON API incl. POST /api/score
+├── Makefile              # make smoke / make test
 ├── Procfile
 ├── app.json
 ├── runtime.txt

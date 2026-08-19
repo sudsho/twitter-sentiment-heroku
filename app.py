@@ -5,6 +5,7 @@ import yaml
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
 
+from src.score import label, score
 from src.store import store
 
 # load .env if present; on heroku the dyno sets env vars directly so missing
@@ -64,6 +65,29 @@ def api_summary():
         })
     out["total_in_buffer"] = len(store)
     return jsonify(out)
+
+
+@app.route("/api/score", methods=["POST"])
+def api_score():
+    """Score a single piece of text on demand.
+
+    Accepts JSON ``{"text": "..."}`` or a form field ``text`` and returns the
+    VADER + TextBlob ensemble score and a positive/negative/neutral label. This
+    runs the same offline scorer the stream worker uses, so it needs no Twitter
+    API access.
+    """
+    data = request.get_json(silent=True) or {}
+    text = data.get("text")
+    if text is None:
+        text = request.form.get("text", "")
+    combined, v, t = score(text)
+    return jsonify({
+        "text": text,
+        "score": combined,
+        "vader": v,
+        "textblob": t,
+        "label": label(combined),
+    })
 
 
 @app.route("/healthz")
